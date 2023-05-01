@@ -21,6 +21,7 @@ const (
 	host   = "0.0.0.0"
 	port   = 5432
 	user   = "user1"
+    //user = "windingroad100hf"
 	dbname = "blog"
 )
 
@@ -33,26 +34,22 @@ type Blogpost struct {
 	Author           string
 	Description      string
 	Publication_date string
+    Card_image_url       string
 }
 
 var Blogposts []Blogpost
 var psqlconn string
 var db *sql.DB
 var err error = nil
+var defaultImageUrl = "https://images3.alphacoders.com/165/thumb-1920-165265.jpg"
 
 func main() {
 	setupEnv()
 	db_connect()
 	getAll()
-	// timex := (Blogposts[0].Publication_date)
-	// t, err := time.Parse(time.RFC3339, timex)
-	// timey := t.Format(time.Stamp)
-	// fmt.Println("UNIX: ", timey)
 	if err != nil {
 		log.Fatal(err)
 	}
-	//fmt.Printf("date is of type %T \n", t)
-	//	fmt.Printf("date is %v", t)
 	handleRequests()
 
 }
@@ -93,8 +90,12 @@ func getAll() {
 		var author string
 		var description string
 		var publication_date time.Time
+        var card_image_url string
+        if card_image_url == ""{
+            card_image_url = defaultImageUrl
+        }
 		//why is Scan checking the pointers to those variables?
-		err = rowsRs.Scan(&post_id, &title, &content, &author, &description, &publication_date)
+		err = rowsRs.Scan(&post_id, &title, &content, &author, &description,  &publication_date, &card_image_url)
 		CheckError(err)
 
 		// formatting the current timestamp in unixDate format
@@ -103,7 +104,7 @@ func getAll() {
 		unix_time, err := time.Parse(time.UnixDate, publication_date_string)
 		// formatting that string to be nice
 		pubdate := unix_time.Format("January 2, 2006")
-		blogpost := Blogpost{post_id, title, content, author, description, pubdate}
+		blogpost := Blogpost{post_id, title, content, author, description, pubdate, card_image_url}
 
 		Blogposts = append(Blogposts, blogpost)
 		fmt.Println(err)
@@ -113,7 +114,7 @@ func getAll() {
 
 func CheckError(err error) {
 	if err != nil {
-		panic(err)
+		fmt.Println(err)
 	}
 }
 
