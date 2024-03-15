@@ -4,13 +4,14 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
-	"github.com/gorilla/mux"
 	"log"
 	"net/http"
 	"os"
 	"sort"
 	"strings"
 	"time"
+
+	"github.com/gorilla/mux"
 
 	// "net/http"
 	_ "github.com/lib/pq"
@@ -21,7 +22,6 @@ const (
 	host   = "0.0.0.0"
 	port   = 5432
 	user   = "user1"
-    //user = "windingroad100hf"
 	dbname = "blog"
 )
 
@@ -34,7 +34,7 @@ type Blogpost struct {
 	Author           string
 	Description      string
 	Publication_date string
-    Card_image_url       string
+	Card_image_url   string
 }
 
 var Blogposts []Blogpost
@@ -90,12 +90,12 @@ func getAll() {
 		var author string
 		var description string
 		var publication_date time.Time
-        var card_image_url string
-        if card_image_url == ""{
-            card_image_url = defaultImageUrl
-        }
+		var card_image_url string
+		if card_image_url == "" {
+			card_image_url = defaultImageUrl
+		}
 		//why is Scan checking the pointers to those variables?
-		err = rowsRs.Scan(&post_id, &title, &content, &author, &description,  &publication_date, &card_image_url)
+		err = rowsRs.Scan(&post_id, &title, &content, &author, &description, &publication_date, &card_image_url)
 		CheckError(err)
 
 		// formatting the current timestamp in unixDate format
