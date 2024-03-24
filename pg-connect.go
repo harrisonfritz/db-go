@@ -6,12 +6,12 @@ import (
 	"fmt"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
+	"regexp"
 	"sort"
 	"strings"
 	"time"
-
-	"github.com/gorilla/mux"
 
 	// "net/http"
 	_ "github.com/lib/pq"
@@ -62,19 +62,17 @@ func db_connect() {
 	err = db.Ping()
 	CheckError(err)
 
-	fmt.Println("Connected!")
+	log.Println("Connected to database!")
 }
 
 func clearBlogposts() {
 	Blogposts = nil
-	fmt.Println("")
-	fmt.Println("Clearing Blogs")
-	fmt.Println("")
+	log.Println("Clearing Blogs")
 }
 
 func refreshBlogposts() {
 	clearBlogposts()
-	fmt.Println("Refreshing ")
+	log.Println("Refreshing BlogPosts")
 	getAll()
 }
 
@@ -107,14 +105,14 @@ func getAll() {
 		blogpost := Blogpost{post_id, title, content, author, description, pubdate, card_image_url}
 
 		Blogposts = append(Blogposts, blogpost)
-		fmt.Println(err)
+		log.Println(err)
 	}
 	SortByDate(Blogposts)
 }
 
 func CheckError(err error) {
 	if err != nil {
-		fmt.Println(err)
+		log.Println(err)
 	}
 }
 
@@ -126,22 +124,21 @@ func SortByDate(blogs []Blogpost) {
 		t2, err2 := time.Parse("January 2, 2006", blogs[j].Publication_date)
 		t2a := t2.Format(time.RFC3339)
 		if err1 != nil || err2 != nil {
-			fmt.Println("error with SortByDateFunction")
+			log.Println("error with SortByDateFunction")
 		}
 		return t1a > t2a
 
 	})
 
-	fmt.Println("SORTED")
+	log.Println("blogs sorted by date")
 }
 
 // what is r *http.Request is this a pointer to an http.Request object?
 func homePage(w http.ResponseWriter, r *http.Request) {
-	fmt.Println(Blogposts[0].Publication_date)
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
 	fmt.Fprintf(w, "Welcome to the HomePage!")
-	fmt.Println("Endpoint Hit: homePage")
+	log.Println("Endpoint Hit: homePage")
 
 }
 
@@ -149,23 +146,22 @@ func returnAllPosts(w http.ResponseWriter, r *http.Request) {
 	getAll()
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	fmt.Println("Endpoint Hit: returnAllArticles")
+	log.Println("Endpoint Hit: returnAllArticles")
 	json.NewEncoder(w).Encode(Blogposts)
 }
 
 func returnSinglePost(w http.ResponseWriter, r *http.Request) {
 	w.Header().Set("Content-Type", "text/html; charset=utf-8")
 	w.Header().Set("Access-Control-Allow-Origin", "*")
-	//what does mux do?
-	vars := mux.Vars(r)
-	dashTitle := strings.ToLower(strings.Replace(vars["title"], " ", "-", -1))
 
-	// Loop over all of our Articles
-	// if the article.Id equals the key we pass in
-	// return the article encoded as JSON
+	extension := r.URL.Path[len("/posts/"):]
 	for _, post := range Blogposts {
-		title := strings.ToLower(strings.Replace(post.Title, " ", "-", -1))
-		if title == dashTitle {
+		fmt.Println(url.PathEscape(strings.ToLower(strings.Replace(post.Title, " ", "-", -1))))
+		//fmt.Println(url.PathEscape(post.Title))
+		fmt.Println(extension)
+		//fmt.Println(url.PathEscape(extension))
+		fmt.Println()
+		if url.PathEscape(strings.Replace(post.Title, " ", "-", -1)) == url.PathEscape(extension) {
 			json.NewEncoder(w).Encode(post)
 		}
 	}
@@ -173,22 +169,22 @@ func returnSinglePost(w http.ResponseWriter, r *http.Request) {
 
 func handleRequests() {
 	refreshBlogposts()
-	fmt.Println("SHNOODIEDOODLE")
-	// http.HandleFunc("/", homePage)
-	// http.HandleFunc("/posts", returnAllPosts)
-	myRouter := mux.NewRouter().StrictSlash(true)
+
+	myRouter := http.NewServeMux()
+
 	myRouter.HandleFunc("/", homePage)
 	myRouter.HandleFunc("/posts", returnAllPosts)
-	myRouter.HandleFunc("/posts/{title}", returnSinglePost)
-	log.Fatal(http.ListenAndServe(":10000", myRouter))
-	fmt.Println(Blogposts)
+	myRouter.HandleFunc("/posts/", returnSinglePost) // Note the trailing slash for the "/posts" route
+
+	fmt.Println("Server listening on port 10443...")
+	log.Fatal(http.ListenAndServeTLS(":10443", "./certs/cert.pem", "./certs/key.pem", myRouter))
 }
 
 func loadEnv() {
 	password = os.Getenv("pgConnP")
 	if err != nil {
-		fmt.Println("pgConnP environment variable does not exist")
-		fmt.Println(err)
+		log.Println("pgConnP environment variable does not exist")
+		log.Println(err)
 	}
 }
 
@@ -197,4 +193,9 @@ func setupEnv() {
 	psqlconn = fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=disable", host, port, user, password, dbname)
 	db, err = sql.Open("postgres", psqlconn)
 
+}
+
+func removeNonAlphanumeric(input string) string {
+	reg := regexp.MustCompile("[^a-zA-Z0-9]+")
+	return reg.ReplaceAllString(input, "")
 }
