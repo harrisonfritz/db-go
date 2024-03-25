@@ -100,12 +100,15 @@ func getAll() {
 		publication_date_string := publication_date.Format(time.UnixDate)
 		// generating a string of the unixdate format
 		unix_time, err := time.Parse(time.UnixDate, publication_date_string)
+		if err != nil {
+			log.Println(err)
+		}
+
 		// formatting that string to be nice
 		pubdate := unix_time.Format("January 2, 2006")
 		blogpost := Blogpost{post_id, title, content, author, description, pubdate, card_image_url}
 
 		Blogposts = append(Blogposts, blogpost)
-		log.Println(err)
 	}
 	SortByDate(Blogposts)
 }
@@ -156,12 +159,19 @@ func returnSinglePost(w http.ResponseWriter, r *http.Request) {
 
 	extension := r.URL.Path[len("/posts/"):]
 	for _, post := range Blogposts {
-		fmt.Println(url.PathEscape(strings.ToLower(strings.Replace(post.Title, " ", "-", -1))))
-		//fmt.Println(url.PathEscape(post.Title))
-		fmt.Println(extension)
-		//fmt.Println(url.PathEscape(extension))
-		fmt.Println()
-		if url.PathEscape(strings.Replace(post.Title, " ", "-", -1)) == url.PathEscape(extension) {
+		rawTitle := post.Title
+		postTitle := strings.Replace(rawTitle, "?", "", -1)
+		postTitle = url.PathEscape(strings.ToLower(strings.Replace(postTitle, " ", "-", -1)))
+		decodedExtension, err := url.PathUnescape(extension)
+		if err != nil {
+			log.Printf("error decoding extension %v: %v\n", extension, err)
+		}
+		decodedExtension = strings.Replace(decodedExtension, "?", "", -1)
+
+		//fmt.Printf("decodedExtesion: %v\n", decodedExtension)
+		//fmt.Printf("postTitle: %v\n", postTitle)
+		//fmt.Println()
+		if postTitle == decodedExtension {
 			json.NewEncoder(w).Encode(post)
 		}
 	}
