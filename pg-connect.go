@@ -188,6 +188,7 @@ func handleRequests() {
 
 	fmt.Println("Server listening on port 10443...")
 	log.Fatal(http.ListenAndServeTLS(":10443", "./certs/cert.pem", "./certs/key.pem", myRouter))
+	// log.Fatal(http.ListenAndServeTLS(":10443", "/etc/letsencrypt/live/harrisonfritz.com/fullchain.pem", "/etc/letsencrypt/live/harrisonfritz.com/privkey.pem", myRouter))
 }
 
 func loadEnv() {
